@@ -1,0 +1,14 @@
+{
+  "root": "/home/dann",
+  "users": [
+    {
+      "username": "admin",
+      "passwordHash": "$2b$10$oWXdq8drbU3Mbwm5c9O/KOCQy/naVvCwarlBZkuLmXlywsRj9Tf2u",
+      "role": "admin"
+    }
+  ],
+  "auth": {
+    "jwtSecret": "change-this-secret",
+    "tokenTtlMinutes": 60
+  }
+}

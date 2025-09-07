@@ -1,0 +1,34 @@
+name: Release
+
+on:
+  push:
+    tags: ['*']
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test --coverage
+      - run: npm run build
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push image (tag and latest)
+        run: |
+          IMAGE_BASE=$(echo ghcr.io/${{ github.repository }} | tr '[:upper:]' '[:lower:]')
+          TAG=${{ github.ref_name }}
+          docker build -t "$IMAGE_BASE:$TAG" -t "$IMAGE_BASE:latest" .
+          docker push "$IMAGE_BASE:$TAG"
+          docker push "$IMAGE_BASE:latest"

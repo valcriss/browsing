@@ -1,14 +1,16 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
+    "module": "CommonJS",
     "moduleResolution": "Node",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "strict": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "types": ["node", "jest"],
+    "isolatedModules": true
   },
-  "include": ["src/**/*", "public/**/*", "tools/**/*"],
+  "include": ["src/**/*", "tools/**/*"],
   "exclude": ["node_modules", "dist"]
 }

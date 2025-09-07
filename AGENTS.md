@@ -36,6 +36,7 @@
 ## 3) Configuration schema
 
 Place `configuration.json` at the project root:
+
 ```json
 {
   "root": "/absolute/path/to/expose",
@@ -49,6 +50,7 @@ Place `configuration.json` at the project root:
   }
 }
 ```
+
 - `root`: **absolute** path.
 - `users[*].passwordHash`: BCrypt hash.
 - `role`: `"admin" | "user"`.
@@ -64,32 +66,38 @@ Place `configuration.json` at the project root:
 Base URL: `http://localhost:3000` (or container port, see Compose)
 
 ### 4.1 POST `/api/login`
+
 - **Body**: `{ username: string, password: string }`.
 - **Success**: `200` JSON `{ token: string, user: { username: string, role: 'admin'|'user' } }`.
 - **Notes**: token is a JWT (HS256) signed with `auth.jwtSecret`, exp set to `tokenTtlMinutes`.
 - **Errors**: `401` invalid credentials; `400` missing fields.
 
 ### 4.2 Auth for all other endpoints
+
 - **Required**: `Authorization: Bearer <token>` header with a valid, unexpired JWT.
 - **Errors**: `401` if missing/invalid/expired; `403` if role is insufficient for the action.
 
 ### 4.3 GET `/api/tree?path=<relative>`
+
 - **Auth**: Bearer token required.
 - **Response**: `200` JSON `{ cwd, parent, items: Array<{ name; isDir; size|null; mtime }>, user: {username, role} }`.
 - **Errors**: `400` if not a directory; `403` if path escapes root.
 
 ### 4.4 GET `/api/file?path=<relative>`
+
 - **Auth**: Bearer token required.
 - **Behavior**: stream download with proper `Content-Type`, `Content-Disposition`, `Content-Length`.
 - **Errors**: `400` if directory; `403` if outside root.
 
 ### 4.5 POST `/api/move` (admin)
+
 - **Auth**: Bearer token; must have `role: admin`.
 - **Body**: `{ from: string; to: string }` (paths relative to root).
 - **Behavior**: create destination folder if needed; `rename`.
 - **Errors**: `400` missing fields; `403` outside root or not admin.
 
 ### 4.6 DELETE `/api/file?path=<relative>` (admin)
+
 - **Auth**: Bearer token; must have `role: admin`.
 - **Behavior**: recursive deletion (`fs.rm` with `recursive:true, force:true`).
 
@@ -163,7 +171,7 @@ filebrowser/
 ## 7) Frontend (Tailwind + TS)
 
 - `public/index.html`:
-  - Header with username/password form and *Login* / *Logout* buttons; show role badge after login.
+  - Header with username/password form and _Login_ / _Logout_ buttons; show role badge after login.
   - Left: folder tree (droppable zones for move).
   - Right: current directory listing; click to open folders; download link for files; 🗑️ button (visible if admin).
   - Breadcrumb navigation.
@@ -195,11 +203,17 @@ filebrowser/
 - Cover both backend and critical frontend TS (`public/app.ts`).
 
 Required settings:
+
 - `collectCoverageFrom`: `['src/**/*.ts', 'public/app.ts']`.
 - `coverageThreshold`:
   ```json
   {
-    "global": { "statements": 100, "branches": 100, "functions": 100, "lines": 100 }
+    "global": {
+      "statements": 100,
+      "branches": 100,
+      "functions": 100,
+      "lines": 100
+    }
   }
   ```
 - Mock FS/Express for unit tests.
@@ -210,6 +224,7 @@ Required settings:
 ## 10) Containers & CI
 
 ### 10.1 Dockerfile (multi‑stage)
+
 - **Stage 1 (builder)**: node:20‑alpine
   - Install deps (use `npm ci --omit=dev` only in runtime stage; in builder run full `npm ci`).
   - Build TypeScript (backend + `public/app.ts`).
@@ -218,6 +233,7 @@ Required settings:
   - Default `CMD ["node", "dist/server.js"]` and `EXPOSE 3000`.
 
 ### 10.2 docker‑compose.yml
+
 - Service `filebrowser`:
   - Build from `Dockerfile`.
   - Map host directory to a container path if you want to expose a local folder (bind mount optional).
@@ -225,6 +241,7 @@ Required settings:
   - Ports: `3000:3000`.
 
 ### 10.3 GitHub Actions: `.github/workflows/ci.yml`
+
 - Triggers: `push` and `pull_request` to any branch; **plus** `push` on tags (e.g., `v*`).
 - Jobs:
   1. **ci** (always): checkout, setup Node 20, `npm ci`, `npm run lint`, `npm test --coverage`, `npm run build`.
@@ -249,6 +266,7 @@ Required settings:
 ## 12) Tests to implement (exhaustive)
 
 ### 12.1 Unit — utils & auth
+
 - `config.ts`: load/validate config (missing fields, types, root abs path, users validity, auth section presence, positive TTL).
 - `bearer.ts`: rejects missing/invalid/expired tokens; accepts valid tokens; attaches `req.user` with `{username, role}`; role guard helper for admin.
 - `login.ts`: accepts correct creds (bcrypt match) and issues JWT with proper claims and exp; rejects invalid creds.
@@ -256,12 +274,14 @@ Required settings:
 - `logger.ts`: console spies.
 
 ### 12.2 Unit — fileOps
+
 - `list(dir)`: returns items with `isDir/size/mtime`, sorted dirs first, then files alpha.
 - `download(file)`: reject directory; expose metadata (mock `stat`).
 - `move(from,to)`: creates parent; propagates FS errors.
 - `remove(path)`: recursive deletion; correct flags.
 
 ### 12.3 Routes (supertest)
+
 - `POST /api/login`: 200 on success, 401 on bad creds; token decodes to expected claims.
 - `GET /api/tree`: 401 without token; 200 with token; 400 on file path; 403 on root escape.
 - `GET /api/file`: 401 without token; 200 with token; 400 on directory.
@@ -269,6 +289,7 @@ Required settings:
 - `DELETE /api/file`: 401 without token; 403 for non‑admin; 200 for admin; verify `rm` called.
 
 ### 12.4 Frontend (`public/app.ts`)
+
 - `login()` stores token and user; builds Bearer header.
 - DnD move logic with fake `DataTransfer`.
 - Admin buttons visible only when `role==='admin'`.
@@ -279,8 +300,8 @@ Required settings:
 
 ## 13) UX & frontend details
 
-- *Login* posts JSON creds, stores `{ token, user }` in `sessionStorage`.
-- *Logout* clears session and UI.
+- _Login_ posts JSON creds, stores `{ token, user }` in `sessionStorage`.
+- _Logout_ clears session and UI.
 - Role badge reflects current user.
 - Downloads via `<a href="/api/file?path=...">` with Bearer header (use fetch + blob if headers are required by server; otherwise allow direct link if server tolerates token via cookie — for MVP, prefer fetch + blob download to always pass Bearer).
 - Drag: set `dataTransfer.setData('text/plain', relPath)`. Drop on folder (`.droppable`).
@@ -317,7 +338,7 @@ Required settings:
 
 ## 17) Generation steps (recommended order)
 
-1. Bootstrap `package.json` (TypeScript, ts‑node/tsx, jest, ts‑jest, supertest, eslint, prettier, husky, lint‑staged, bcryptjs, jsonwebtoken, express, mime‑types, @types/*,…).
+1. Bootstrap `package.json` (TypeScript, ts‑node/tsx, jest, ts‑jest, supertest, eslint, prettier, husky, lint‑staged, bcryptjs, jsonwebtoken, express, mime‑types, @types/\*,…).
 2. Configs: `tsconfig.json`, `jest.config.ts`, `.eslintrc.cjs`, `.eslintignore`, `.prettierrc.json`, `.prettierignore`, Husky `pre-commit`, `lint-staged`.
 3. Schema: create example `configuration.json`.
 4. Backend: `server.ts`, `config/config.ts`, `auth/login.ts`, `auth/bearer.ts`, `fs/pathSafe.ts`, `fs/fileOps.ts`, `routes/*`, `utils/logger.ts`.
@@ -360,4 +381,3 @@ Required settings:
 - Developer experience: one‑command build/run locally and in containers; CI doing the right thing on tags.
 
 > When these are satisfied, the project is **Done**.
-

@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  filebrowser:
+    build: .
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./configuration.json:/app/configuration.json:ro
+      # bind mount a host directory to expose via config root (adjust path accordingly)
+      # - /host/path:/data
+    environment:
+      - PORT=3000

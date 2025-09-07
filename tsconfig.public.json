@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ES2020",
+    "moduleResolution": "Node",
+    "esModuleInterop": true,
+    "strict": true,
+    "outDir": "public",
+    "types": []
+  },
+  "include": ["public/app.ts"],
+  "exclude": ["node_modules", "dist"]
+}

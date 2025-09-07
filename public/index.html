@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FileBrowser</title>
+    <script>
+      // Apply theme early to avoid flash and enable manual dark mode
+      (function () {
+        try {
+          var c = localStorage.getItem('theme');
+          var systemDark =
+            window.matchMedia &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (c === 'dark' || (c !== 'light' && systemDark)) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (_) {}
+      })();
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // Configure Tailwind Play CDN after load to use class-based dark mode
+      try {
+        tailwind.config = Object.assign(tailwind.config || {}, {
+          darkMode: 'class',
+        });
+      } catch (_) {}
+    </script>
+    <style>
+      /* Fallback: ensure dark class forces dark colors even if CDN config fails */
+      html.dark body {
+        background-color: #111827 !important;
+        color: #f3f4f6 !important;
+      }
+      html.dark .bg-white {
+        background-color: #1f2937 !important;
+      }
+      html.dark .bg-gray-100 {
+        background-color: #111827 !important;
+      }
+      html.dark .border {
+        border-color: #374151 !important;
+      }
+      html.dark .text-gray-900 {
+        color: #f3f4f6 !important;
+      }
+      html.dark input {
+        background-color: #111827 !important;
+        color: #f3f4f6 !important;
+        border-color: #374151 !important;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100 min-h-screen"
+  >
+    <!-- Centered login panel when not authenticated -->
+    <div id="loginPanel" class="min-h-screen flex items-center justify-center">
+      <div class="bg-white dark:bg-gray-800 shadow rounded p-6 w-full max-w-sm">
+        <h1 class="text-xl font-semibold mb-4 text-center">
+          FileBrowser Login
+        </h1>
+        <div class="flex flex-col gap-3">
+          <input
+            id="username"
+            class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 p-2 rounded"
+            placeholder="Username"
+          />
+          <input
+            id="password"
+            type="password"
+            class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 p-2 rounded"
+            placeholder="Password"
+          />
+          <button
+            id="loginBtn"
+            class="px-3 py-2 bg-blue-600 text-white rounded"
+          >
+            Login
+          </button>
+          <div
+            id="loginError"
+            class="text-red-600 dark:text-red-400 text-sm hidden"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- App panel shown after authentication -->
+    <div id="appPanel" class="hidden">
+      <div
+        class="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex gap-4 items-center"
+      >
+        <button id="logoutBtn" class="px-3 py-2 bg-gray-700 text-white rounded">
+          Logout
+        </button>
+        <span id="roleBadge" class="ml-auto text-sm"></span>
+        <button
+          id="themeToggle"
+          class="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded"
+        >
+          Theme: System
+        </button>
+      </div>
+
+      <div class="p-4 grid grid-cols-3 gap-4">
+        <div>
+          <h2 class="font-bold mb-2">Folders</h2>
+          <ul
+            id="tree"
+            class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-2 min-h-[300px]"
+          ></ul>
+        </div>
+        <div class="col-span-2">
+          <div id="breadcrumb" class="mb-2 text-sm"></div>
+          <ul
+            id="list"
+            class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-2 min-h-[300px]"
+          ></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Global loader overlay -->
+    <div
+      id="loader"
+      class="hidden fixed inset-0 bg-white/60 dark:bg-black/60 flex items-center justify-center"
+    >
+      <div
+        class="flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-4 py-2 shadow"
+      >
+        <svg
+          class="animate-spin h-5 w-5 text-blue-600"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            class="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            stroke-width="4"
+          ></circle>
+          <path
+            class="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+          ></path>
+        </svg>
+        <span>Loading…</span>
+      </div>
+    </div>
+
+    <!-- Browser theme color for light/dark -->
+    <meta
+      name="theme-color"
+      content="#f8fafc"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#111827"
+      media="(prefers-color-scheme: dark)"
+    />
+
+    <script>
+      // Fallback theme toggle (works even if app.js fails)
+      (function () {
+        function current() {
+          try {
+            return localStorage.getItem('theme') || 'system';
+          } catch (_) {
+            return 'system';
+          }
+        }
+        function apply() {
+          var t = current();
+          var useDark =
+            t === 'dark' ||
+            (t === 'system' &&
+              window.matchMedia &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.toggle('dark', useDark);
+          var btn = document.getElementById('themeToggle');
+          if (btn) {
+            btn.textContent =
+              'Theme: ' + t.charAt(0).toUpperCase() + t.slice(1);
+          }
+        }
+        function set(t) {
+          try {
+            localStorage.setItem('theme', t);
+          } catch (_) {
+            /*ignore*/
+          }
+          apply();
+        }
+        window.addEventListener('click', function (e) {
+          var t = e.target;
+          var el = t && t.nodeType === 1 ? t : null; // ensure Element
+          if (el && el.id === 'themeToggle') {
+            var c = current();
+            var n = c === 'system' ? 'dark' : c === 'dark' ? 'light' : 'system';
+            set(n);
+          }
+        });
+        apply();
+        if (window.matchMedia) {
+          var mq = window.matchMedia('(prefers-color-scheme: dark)');
+          mq.addEventListener &&
+            mq.addEventListener('change', function () {
+              if (current() === 'system') apply();
+            });
+        }
+      })();
+    </script>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
