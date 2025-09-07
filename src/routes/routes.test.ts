@@ -54,6 +54,11 @@ describe('routes', () => {
       .query({ path: 'file.txt' })
       .set('Authorization', `Bearer ${userToken}`);
     expect(fileRes.status).toBe(200);
+    // token via query param should also work (for streaming anchor usage)
+    const fileRes2 = await request(app)
+      .get('/api/file')
+      .query({ path: 'file.txt', token: userToken });
+    expect(fileRes2.status).toBe(200);
     const dirRes = await request(app)
       .get('/api/file')
       .query({ path: 'sub' })

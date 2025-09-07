@@ -44,4 +44,16 @@ describe('bearer middleware', () => {
       .set('Authorization', 'Bearer notatoken');
     expect(res.status).toBe(401);
   });
+
+  it('file route: rejects when no Authorization and no token query', async () => {
+    const res = await request(app).get('/api/file').query({ path: 'x' });
+    expect(res.status).toBe(401);
+  });
+
+  it('file route: rejects malformed token in query', async () => {
+    const res = await request(app)
+      .get('/api/file')
+      .query({ path: 'x', token: 'badtoken' });
+    expect(res.status).toBe(401);
+  });
 });

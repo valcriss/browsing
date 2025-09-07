@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import fs from 'fs';
-import { bearerRequired } from '../auth/bearer';
+import { bearerFromHeaderOrQuery } from '../auth/bearer';
 import { getFileMeta } from '../fs/fileOps';
 import logger from '../utils/logger';
 
 const router = Router();
 
-router.get('/api/file', bearerRequired, async (req, res) => {
+router.get('/api/file', bearerFromHeaderOrQuery, async (req, res) => {
   try {
     const rel = String(req.query.path ?? '');
     const meta = await getFileMeta(rel);

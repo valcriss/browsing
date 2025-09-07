@@ -210,27 +210,17 @@ function render(tree: TreeResponse): void {
       const li = document.createElement('li');
       li.className = 'flex justify-between items-center py-1';
       const a = document.createElement('a');
-      a.href = '#';
       a.textContent = '📄 ' + it.name;
       a.draggable = true;
       a.addEventListener('dragstart', (e) =>
         e.dataTransfer?.setData('text/plain', `${tree.cwd}/${it.name}`),
       );
-      a.addEventListener('click', async (e) => {
-        e.preventDefault();
-        // fetch + blob to include Bearer header
-        const res = await fetch(
-          `/api/file?path=${encodeURIComponent(tree.cwd + '/' + it.name)}`,
-          { headers: authHeader() },
-        );
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const dl = document.createElement('a');
-        dl.href = url;
-        dl.download = it.name;
-        dl.click();
-        URL.revokeObjectURL(url);
-      });
+      const sess = getSession();
+      const dlHref = `/api/file?path=${encodeURIComponent(
+        tree.cwd + '/' + it.name,
+      )}${sess ? `&token=${encodeURIComponent(sess.token)}` : ''}`;
+      a.href = dlHref;
+      a.setAttribute('download', it.name);
       li.appendChild(a);
       if (isAdmin()) {
         const del = document.createElement('button');
