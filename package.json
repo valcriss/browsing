@@ -6,7 +6,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "start": "node dist/server.js",
+    "start": "node dist/src/server.js",
     "dev": "concurrently -k -n server,frontend \"nodemon --watch src --ext ts --exec 'tsx src/server.ts'\" \"tsc -p tsconfig.public.json -w\"",
     "build": "tsc && tsc -p tsconfig.public.json",
     "test": "jest --coverage",

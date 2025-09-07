@@ -14,4 +14,4 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/public ./public
 COPY configuration.json ./configuration.json
 EXPOSE 3000
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/src/server.js"]
