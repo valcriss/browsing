@@ -1,7 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { loadConfig } from '../config/config';
-import type { JwtUser } from '../types/index.d.ts';
+import { parseToken } from './token';
 
 export function bearerRequired(
   req: Request,
@@ -14,13 +12,11 @@ export function bearerRequired(
       res.status(401).json({ error: 'Unauthorized' });
       return;
     }
-    const token = auth.slice('Bearer '.length).trim();
-    const cfg = loadConfig();
-    const payload = jwt.verify(token, cfg.auth.jwtSecret) as jwt.JwtPayload;
-    const user: JwtUser = {
-      username: String(payload.username),
-      role: payload.role as 'admin' | 'user',
-    };
+    const user = parseToken(req);
+    if (!user) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
     req.user = user;
     next();
   } catch {
@@ -50,25 +46,11 @@ export function bearerFromHeaderOrQuery(
   next: NextFunction,
 ): void {
   try {
-    const auth = req.header('Authorization');
-    const queryToken =
-      typeof req.query.token === 'string'
-        ? (req.query.token as string)
-        : undefined;
-    let token: string | undefined;
-    if (auth && auth.startsWith('Bearer '))
-      token = auth.slice('Bearer '.length).trim();
-    else if (queryToken) token = queryToken;
-    if (!token) {
+    const user = parseToken(req);
+    if (!user) {
       res.status(401).json({ error: 'Unauthorized' });
       return;
     }
-    const cfg = loadConfig();
-    const payload = jwt.verify(token, cfg.auth.jwtSecret) as jwt.JwtPayload;
-    const user: JwtUser = {
-      username: String(payload.username),
-      role: payload.role as 'admin' | 'user',
-    };
     req.user = user;
     next();
   } catch {
