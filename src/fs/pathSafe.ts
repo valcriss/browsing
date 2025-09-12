@@ -1,7 +1,8 @@
+import fs from 'fs';
 import path from 'path';
 import { loadConfig } from '../config/config';
 
-export function resolveSafePath(rel: string): string {
+export async function resolveSafePath(rel: string): Promise<string> {
   const cfg = loadConfig();
   const root = path.resolve(cfg.root);
   const requested = rel ?? '';
@@ -11,9 +12,15 @@ export function resolveSafePath(rel: string): string {
     throw Object.assign(new Error('Forbidden path'), { status: 403 });
   }
   const abs = path.resolve(root, normRel);
+  let real: string;
+  try {
+    real = await fs.promises.realpath(abs);
+  } catch {
+    real = abs;
+  }
   /* istanbul ignore next */ if (
-    abs !== root &&
-    !abs.startsWith(root + path.sep)
+    real !== root &&
+    !real.startsWith(root + path.sep)
   ) {
     throw Object.assign(new Error('Forbidden path'), { status: 403 });
   }

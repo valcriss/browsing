@@ -15,7 +15,7 @@ type HttpError = Error & { status?: number };
 export async function list(
   relDir: string,
 ): Promise<{ cwd: string; parent: string | null; items: TreeItem[] }> {
-  const dirAbs = resolveSafePath(relDir);
+  const dirAbs = await resolveSafePath(relDir);
   const stat = await fs.promises.stat(dirAbs);
   if (!stat.isDirectory()) {
     const err: HttpError = new Error('Not a directory');
@@ -66,7 +66,7 @@ export async function list(
 export async function getFileMeta(
   relFile: string,
 ): Promise<{ abs: string; size: number; mimeType: string; filename: string }> {
-  const abs = resolveSafePath(relFile);
+  const abs = await resolveSafePath(relFile);
   const st = await fs.promises.stat(abs);
   if (st.isDirectory()) {
     const err: HttpError = new Error('Is a directory');
@@ -80,14 +80,14 @@ export async function getFileMeta(
 }
 
 export async function move(fromRel: string, toRel: string): Promise<void> {
-  const fromAbs = resolveSafePath(fromRel);
-  const toAbs = resolveSafePath(toRel);
+  const fromAbs = await resolveSafePath(fromRel);
+  const toAbs = await resolveSafePath(toRel);
   await fs.promises.mkdir(path.dirname(toAbs), { recursive: true });
   await fs.promises.rename(fromAbs, toAbs);
 }
 
 export async function remove(relPath: string): Promise<void> {
-  const abs = resolveSafePath(relPath);
+  const abs = await resolveSafePath(relPath);
   await fs.promises.rm(abs, { recursive: true, force: true });
 }
 /* istanbul ignore file */
