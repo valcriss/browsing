@@ -180,6 +180,10 @@ function render(tree: TreeResponse): void {
       const a = document.createElement('a');
       a.href = '#';
       a.textContent = '📁 ' + it.name;
+      a.draggable = true;
+      a.addEventListener('dragstart', (e) =>
+        e.dataTransfer?.setData('text/plain', `${tree.cwd}/${it.name}`),
+      );
       a.addEventListener('click', async (e) => {
         e.preventDefault();
         load(`${tree.cwd}/${it.name}`);
@@ -191,13 +195,18 @@ function render(tree: TreeResponse): void {
         e.preventDefault();
         const from = e.dataTransfer?.getData('text/plain');
         if (!from) return;
+        const destDir = `${tree.cwd}/${it.name}`;
+        if (from === destDir || destDir.startsWith(from + '/')) {
+          alert('Invalid move');
+          return;
+        }
         try {
           await fetch('/api/move', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...authHeader() },
             body: JSON.stringify({
               from,
-              to: `${tree.cwd}/${it.name}/${from.split('/').pop()}`,
+              to: `${destDir}/${from.split('/').pop()}`,
             }),
           });
           await load(tree.cwd);
