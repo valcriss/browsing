@@ -66,6 +66,27 @@ describe('routes', () => {
     expect(dirRes.status).toBe(400);
   });
 
+  it('GET /api/zip zips dir and 400 on file/403 escape', async () => {
+    const no = await request(app).get('/api/zip').query({ path: 'sub' });
+    expect(no.status).toBe(401);
+    const ok = await request(app)
+      .get('/api/zip')
+      .query({ path: 'sub' })
+      .set('Authorization', `Bearer ${userToken}`);
+    expect(ok.status).toBe(200);
+    expect(ok.headers['content-type']).toBe('application/zip');
+    const bad = await request(app)
+      .get('/api/zip')
+      .query({ path: 'file.txt' })
+      .set('Authorization', `Bearer ${userToken}`);
+    expect(bad.status).toBe(400);
+    const esc = await request(app)
+      .get('/api/zip')
+      .query({ path: '../etc' })
+      .set('Authorization', `Bearer ${userToken}`);
+    expect(esc.status).toBe(403);
+  });
+
   it('GET /api/tree 400 on file and 403 on escape', async () => {
     const bad = await request(app)
       .get('/api/tree')
