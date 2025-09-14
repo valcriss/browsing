@@ -30,6 +30,7 @@ describe('frontend integration', () => {
     };
     (global as any).URL.createObjectURL = () => 'blob:';
     (global as any).URL.revokeObjectURL = () => {};
+    (global as any).alert = jest.fn();
     (global as any).fetch = jest.fn(async (url: string, opts?: any) => {
       if (url === '/api/login') {
         return {
@@ -41,28 +42,53 @@ describe('frontend integration', () => {
         } as any;
       }
       if (url.startsWith('/api/tree')) {
-        return {
-          ok: true,
-          json: async () => ({
-            cwd: '.',
-            parent: null,
-            items: [
-              {
-                name: 'dir',
-                isDir: true,
-                size: null,
-                mtime: new Date().toISOString(),
-              },
-              {
-                name: 'f.txt',
-                isDir: false,
-                size: 1,
-                mtime: new Date().toISOString(),
-              },
-            ],
-            user: { username: 'admin', role: 'admin' },
-          }),
-        } as any;
+        const p = new URL(url, 'http://x').searchParams.get('path');
+        if (!p || p === '.')
+          return {
+            ok: true,
+            json: async () => ({
+              cwd: '.',
+              parent: null,
+              items: [
+                {
+                  name: 'dir1',
+                  isDir: true,
+                  size: null,
+                  mtime: new Date().toISOString(),
+                },
+                {
+                  name: 'dir2',
+                  isDir: true,
+                  size: null,
+                  mtime: new Date().toISOString(),
+                },
+                {
+                  name: 'f.txt',
+                  isDir: false,
+                  size: 1,
+                  mtime: new Date().toISOString(),
+                },
+              ],
+              user: { username: 'admin', role: 'admin' },
+            }),
+          } as any;
+        if (p === 'dir1' || p === './dir1')
+          return {
+            ok: true,
+            json: async () => ({
+              cwd: './dir1',
+              parent: '.',
+              items: [
+                {
+                  name: 'sub',
+                  isDir: true,
+                  size: null,
+                  mtime: new Date().toISOString(),
+                },
+              ],
+              user: { username: 'admin', role: 'admin' },
+            }),
+          } as any;
       }
       if (url.startsWith('/api/file?path=')) {
         if (opts?.method === 'DELETE')
@@ -99,21 +125,47 @@ describe('frontend integration', () => {
     const deleteBtn = list.querySelector('button') as HTMLButtonElement;
     deleteBtn.click();
 
-    // simulate drop (move)
-    const folderLi = Array.from(document.querySelectorAll('#tree li')).find(
-      (li) => li.textContent?.includes('dir'),
-    )!;
+    const treeLis = Array.from(document.querySelectorAll('#tree li'));
+    const dir1Li = treeLis.find((li) => li.textContent?.includes('dir1'))!;
+    const dir2Li = treeLis.find((li) => li.textContent?.includes('dir2'))!;
+    const dir1Link = dir1Li.querySelector('a') as HTMLAnchorElement;
+
+    // simulate drop (move file into dir1)
     const evt = new Event('drop', { bubbles: true, cancelable: true }) as any;
-    evt.dataTransfer = { getData: () => 'f.txt' };
-    folderLi.dispatchEvent(evt);
+    evt.dataTransfer = { getData: () => './f.txt' };
+    dir1Li.dispatchEvent(evt);
+
+    // simulate dragging folder dir1
+    const drag = new Event('dragstart') as any;
+    const setData = jest.fn();
+    drag.dataTransfer = { setData };
+    dir1Link.dispatchEvent(drag);
+    expect(setData).toHaveBeenCalledWith('text/plain', './dir1');
+    // drop folder dir1 into dir2
+    const folderDrop = new Event('drop', {
+      bubbles: true,
+      cancelable: true,
+    }) as any;
+    folderDrop.dataTransfer = { getData: () => './dir1' };
+    dir2Li.dispatchEvent(folderDrop);
+
+    const moveCalls = (global.fetch as jest.Mock).mock.calls.length;
+    // drop folder into itself
+    const badDrop = new Event('drop', {
+      bubbles: true,
+      cancelable: true,
+    }) as any;
+    badDrop.dataTransfer = { getData: () => './dir1' };
+    dir1Li.dispatchEvent(badDrop);
+    expect((global.fetch as jest.Mock).mock.calls.length).toBe(moveCalls);
 
     // force move failure to hit catch
     (global.fetch as jest.Mock).mockImplementationOnce(async () => {
       throw new Error('fail');
     });
     const evt2 = new Event('drop', { bubbles: true, cancelable: true }) as any;
-    evt2.dataTransfer = { getData: () => 'f.txt' };
-    folderLi.dispatchEvent(evt2);
+    evt2.dataTransfer = { getData: () => './f.txt' };
+    dir1Li.dispatchEvent(evt2);
 
     // simulate failed login catch path
     (global.fetch as jest.Mock).mockImplementationOnce(async () => ({
@@ -131,11 +183,11 @@ describe('frontend integration', () => {
       ok: url.startsWith('/api/tree') ? false : true,
       json: async () => ({}),
     }));
-    const folderLink = document.querySelector('#tree a') as HTMLAnchorElement;
-    folderLink.click();
+    const folderLink2 = document.querySelector('#tree a') as HTMLAnchorElement;
+    folderLink2.click();
     // trigger drop with no from to hit if (!from) return
     const evt3 = new Event('drop', { bubbles: true, cancelable: true }) as any;
     evt3.dataTransfer = { getData: () => '' };
-    folderLi.dispatchEvent(evt3);
+    dir1Li.dispatchEvent(evt3);
   });
 });
