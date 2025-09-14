@@ -197,7 +197,6 @@ function render(tree: TreeResponse): void {
         if (!from) return;
         const destDir = `${tree.cwd}/${it.name}`;
         if (from === destDir || destDir.startsWith(from + '/')) {
-          alert('Invalid move');
           return;
         }
         try {
