@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import treeRouter from './routes/tree';
 import fileRouter from './routes/file';
+import zipRouter from './routes/zip';
 import adminRouter from './routes/admin';
 import { loginHandler } from './auth/login';
 import logger from './utils/logger';
@@ -12,6 +13,7 @@ app.use(express.json());
 app.post('/api/login', loginHandler);
 app.use(treeRouter);
 app.use(fileRouter);
+app.use(zipRouter);
 app.use(adminRouter);
 
 // static frontend

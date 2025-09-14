@@ -12,6 +12,7 @@ function setupDOM() {
     <div id="breadcrumb"></div>
     <ul id="tree"></ul>
     <ul id="list"></ul>
+    <div id="zipModal" class="hidden"></div>
   </div>`;
 }
 
@@ -98,6 +99,11 @@ describe('frontend integration', () => {
           blob: async () => new Blob(['x'], { type: 'text/plain' }),
         } as any;
       }
+      if (url.startsWith('/api/zip?path='))
+        return {
+          ok: true,
+          blob: async () => new Blob(['zip'], { type: 'application/zip' }),
+        } as any;
       if (url === '/api/move')
         return { ok: true, json: async () => ({ ok: true }) } as any;
       return { ok: false } as any;
@@ -129,6 +135,14 @@ describe('frontend integration', () => {
     const dir1Li = treeLis.find((li) => li.textContent?.includes('dir1'))!;
     const dir2Li = treeLis.find((li) => li.textContent?.includes('dir2'))!;
     const dir1Link = dir1Li.querySelector('a') as HTMLAnchorElement;
+    const dlBtn = dir1Li.querySelector('button') as HTMLButtonElement;
+    dlBtn.click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(
+      (global.fetch as jest.Mock).mock.calls.some((c) =>
+        (c[0] as string).startsWith('/api/zip'),
+      ),
+    ).toBe(true);
 
     // simulate drop (move file into dir1)
     const evt = new Event('drop', { bubbles: true, cancelable: true }) as any;

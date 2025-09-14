@@ -125,6 +125,28 @@ async function fetchTree(rel = '.'): Promise<TreeResponse> {
   return res.json() as Promise<TreeResponse>;
 }
 
+async function downloadDir(relPath: string): Promise<void> {
+  const dlg = document.getElementById('zipModal');
+  dlg?.classList.remove('hidden');
+  try {
+    const res = await fetch(`/api/zip?path=${encodeURIComponent(relPath)}`, {
+      headers: { ...authHeader() },
+    });
+    if (!res.ok) throw new Error('Download failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${relPath.split('/').pop() || 'archive'}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } finally {
+    dlg?.classList.add('hidden');
+  }
+}
+
 /* istanbul ignore next */
 function render(tree: TreeResponse): void {
   const roleBadge = document.getElementById('roleBadge')!;
@@ -189,6 +211,15 @@ function render(tree: TreeResponse): void {
         load(`${tree.cwd}/${it.name}`);
       });
       li.appendChild(a);
+      const dl = document.createElement('button');
+      dl.textContent = '⬇️';
+      dl.className = 'ml-2';
+      dl.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await downloadDir(`${tree.cwd}/${it.name}`);
+      });
+      li.appendChild(dl);
       li.classList.add('droppable');
       li.addEventListener('dragover', (e) => e.preventDefault());
       li.addEventListener('drop', async (e) => {
